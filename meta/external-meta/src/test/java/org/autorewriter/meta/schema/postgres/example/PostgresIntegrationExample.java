@@ -48,12 +48,12 @@ public class PostgresIntegrationExample {
 
         // Step 1: 创建连接配置
         PostgresConnectionConfig config = PostgresConnectionConfig.builder()
-            .host("localhost")
-            .port(55555)
+            .host(System.getProperty("pg.host", "localhost"))
+            .port(Integer.parseInt(System.getProperty("pg.port", "55555")))
             .database("testdb")
             .schema("public")
-            .username("postgres")
-            .password("postgres")
+            .username(System.getProperty("pg.username", "postgres"))
+            .password(System.getProperty("pg.password", "postgres"))
             .build();
 
         System.out.println("Created configuration for: " + config.getJdbcUrl());
@@ -92,16 +92,16 @@ public class PostgresIntegrationExample {
 
         // 你可以注册多个 PostgreSQL 配置
         PostgresConnectionConfig devConfig = PostgresConnectionConfig.builder()
-            .host("localhost")
-            .port(55555)
+            .host(System.getProperty("pg.host", "localhost"))
+            .port(Integer.parseInt(System.getProperty("pg.port", "55555")))
             .database("dev_db")
-            .username("dev_user")
-            .password("dev_pass")
+            .username(System.getProperty("pg.username", "postgres"))
+            .password(System.getProperty("pg.password", "postgres"))
             .build();
 
         PostgresConnectionConfig prodConfig = PostgresConnectionConfig.builder()
             .host("prod-server")
-            .port(55555)
+            .port(Integer.parseInt(System.getProperty("pg.port", "55555")))
             .database("prod_db")
             .username("prod_user")
             .password("prod_pass")

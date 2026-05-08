@@ -13,6 +13,8 @@
 *.tar.gz
 *.rar
 
+*.md
+
 # Maven
 target/
 pom.xml.tag

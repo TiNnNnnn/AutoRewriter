@@ -159,7 +159,7 @@ public class SqlPlanFixture {
 
             log.info("Creating new PostgreSQL schema: {}", getUrl());
             String url = getUrl();
-            DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, "postgres", "postgres");
+            DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, TestDbConfig.USERNAME, TestDbConfig.PASSWORD);
             PostgresJdbcSchemaService postgresSchemaService = new PostgresJdbcSchemaService(dataSource, typeFactory);
             // parents = [catalog=db, schema=public]
             ProxySchema proxySchema = new ProxySchema(List.of(this.db, "public"), postgresSchemaService);
@@ -173,7 +173,7 @@ public class SqlPlanFixture {
     }
 
     private String getUrl() {
-        return "jdbc:postgresql://localhost:55555/" + this.db;
+        return TestDbConfig.getJdbcUrl(this.db);
     }
 
     private TableEngine mapComputeEngineToTableEngine(ComputeEngine computeEngine) {
@@ -227,7 +227,7 @@ public class SqlPlanFixture {
         ensureDatabaseExists(this.db);
         String url = getUrl();
         int successCount = 0;
-        try (Connection conn = DriverManager.getConnection(url, "postgres", "postgres")) {
+        try (Connection conn = DriverManager.getConnection(url, TestDbConfig.USERNAME, TestDbConfig.PASSWORD)) {
             try (Statement statement = conn.createStatement()) {
                 for (String createTableSQL : createTableSQLs) {
                     //log.info("create table with sql:\n {}", createTableSQL);
@@ -242,8 +242,8 @@ public class SqlPlanFixture {
     }
 
     private void ensureDatabaseExists(String dbName) throws SQLException {
-        String maintenanceUrl = "jdbc:postgresql://localhost:55555/postgres";
-        try (Connection conn = DriverManager.getConnection(maintenanceUrl, "postgres", "postgres");
+        String maintenanceUrl = TestDbConfig.getJdbcUrl("postgres");
+        try (Connection conn = DriverManager.getConnection(maintenanceUrl, TestDbConfig.USERNAME, TestDbConfig.PASSWORD);
              Statement stmt = conn.createStatement()) {
             java.sql.ResultSet rs = stmt.executeQuery(
                     "SELECT 1 FROM pg_database WHERE datname = '" + dbName + "'");

@@ -23,14 +23,14 @@ public class PostgresSchemaIntegrationTest {
     @BeforeAll
     public static void setup() {
         // Configure PostgreSQL connection
-        // Update these values to match your PostgreSQL setup
+        // Update these values to match your PostgreSQL setup, or pass -Dpg.host / -Dpg.port / etc.
         PostgresConnectionConfig config = PostgresConnectionConfig.builder()
-            .host("localhost")
-            .port(55555)
+            .host(System.getProperty("pg.host", "localhost"))
+            .port(Integer.parseInt(System.getProperty("pg.port", "55555")))
             .database("testdb")
             .schema("public")
-            .username("postgres")
-            .password("postgres")
+            .username(System.getProperty("pg.username", "postgres"))
+            .password(System.getProperty("pg.password", "postgres"))
             .build();
 
         // Initialize PostgreSQL schema
