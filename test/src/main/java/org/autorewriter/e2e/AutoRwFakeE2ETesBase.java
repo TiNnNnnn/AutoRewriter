@@ -315,7 +315,9 @@ public class AutoRwFakeE2ETesBase extends PostgresqlSchemaTestBase {
                     .withTraceConsumer(graphModule)
                     .run(context);
         } else {
-            new ManualProducePipeline().run(context);
+            new ManualProducePipeline()
+                    .withTraceConsumer(graphModule)
+                    .run(context);
         }
 
         graphModule.export(outputDir.resolve(prefix + "gnn-input"));

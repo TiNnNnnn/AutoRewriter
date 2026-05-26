@@ -154,7 +154,6 @@ public class SqlPlanFixture {
         try {
             Object field = FieldUtils.readDeclaredStaticField(
                     CalciteSchemaRegistry.class, "ENGINE_SCHEMA_MAP", true);
-            @SuppressWarnings("unchecked")
             Map<TableEngine, CalciteSchema> engineSchemaMap = (Map<TableEngine, CalciteSchema>) field;
 
             log.info("Creating new PostgreSQL schema: {}", getUrl());

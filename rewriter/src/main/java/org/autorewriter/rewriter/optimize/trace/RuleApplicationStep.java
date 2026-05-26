@@ -32,23 +32,64 @@ public class RuleApplicationStep {
     private final RelNode producedRelNode;
 
     /**
-     * ID of the RelSubset (equivalence class) that was matched.
-     * Set to -1 when the matched node is not a RelSubset (e.g. HepPlanner).
+     * ID of the RelSet (equivalence class) that contains the matched RelSubset.
+     * Set to -1 when the matched node cannot be resolved to a RelSubset (e.g.
+     * HepPlanner, or when reflection fails).
      *
-     * <p>In VolcanoPlanner, the produced node is added to a RelSet whose subsets
-     * share the same equivalence class. We use this ID to link A→B:
-     * if A.producedIntoSubsetId == B.matchedSubsetId, then B can follow A in a chain.
+     * <p>This is the primary CBO causality signal: combined with
+     * {@link #matchedChildSubsetIds}, it lets the graph builder reconstruct
+     * the structural parent/child relationships between rule applications.
      */
     private final int matchedSubsetId;
 
     /**
-     * ID of the RelSubset into which the produced node was registered.
-     * Set to -1 when unknown (e.g. HepPlanner or when not a RelSubset context).
+     * ID of the RelSet into which the produced node was registered.
+     * Set to -1 when unknown.
      *
-     * <p>Populated by RuleTraceListener when it can determine the target subset.
+     * <p><b>Note (Volcano semantics):</b> {@code transformTo} calls
+     * {@code ensureRegistered(produced, matched)}, which forces {@code produced}
+     * into the SAME RelSet as {@code matched}. Therefore in CBO traces this
+     * value almost always equals {@link #matchedSubsetId} and is NOT a useful
+     * linkage signal between rule applications. It is preserved for diagnostics
+     * and for HepPlanner-style traces where the relationship may differ.
      */
     @Setter
     private int producedIntoSubsetId = -1;
+
+    /**
+     * RelSet IDs of the produced node's direct input subsets (Volcano only).
+     *
+     * <p>Diagnostic field: in practice, the {@code produced} RelNode delivered
+     * to {@code ruleProductionSucceeded} is the raw rel BEFORE Volcano wraps
+     * its inputs in RelSubsets, so this list is usually empty. Kept for
+     * symmetry with {@link #matchedChildSubsetIds} and for potential use on
+     * planner versions that deliver post-registration produced nodes.
+     */
+    @Setter
+    private java.util.List<Integer> producedInputSubsetIds = java.util.Collections.emptyList();
+
+    /**
+     * RelSet IDs of the matched RelSet's structural children (Volcano only).
+     *
+     * <p>A RelSet's children are the RelSets whose RelSubsets appear as inputs
+     * of any registered rel in this set — i.e. the structural children in the
+     * query-plan tree. When rule A matches on setX with children {Y₁, Y₂, ...},
+     * any rule B that matches on Yᵢ is operating on a sub-tree of A's domain
+     * and should appear downstream of A in the dependency graph.
+     *
+     * <p>This is the primary structural-causality signal in CBO traces because
+     * (a) {@link #matchedSubsetId} is always populated (unlike
+     * {@link #producedIntoSubsetId}, which Volcano collapses into
+     * {@code matchedSubsetId}); and (b) {@code RelSet.getChildSets} reliably
+     * captures the plan-tree structure even when individual rel inputs are
+     * not RelSubsets at the moment the listener fires.
+     *
+     * <p><b>Caveat:</b> RelSet child relationships are not guaranteed acyclic
+     * after equivalence-set merging in Volcano, so the graph built from this
+     * field may contain cycles. Downstream consumers must tolerate that.
+     */
+    @Setter
+    private java.util.List<Integer> matchedChildSubsetIds = java.util.Collections.emptyList();
 
     /**
      * Snapshot of the full plan (planner root explain()) after this rule fired.

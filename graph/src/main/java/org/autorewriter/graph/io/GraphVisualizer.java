@@ -48,6 +48,13 @@ public class GraphVisualizer {
         StringBuilder sb = new StringBuilder();
 
         // --- compute BFS layer for each node (topological rank) ---
+        //
+        // NOTE: this BFS computes shortest-path layers (each node enqueued at
+        // most once). An earlier version used a "longest-path" relaxation that
+        // re-enqueued nodes whenever a longer path was found — that loops
+        // forever if the graph has cycles. CBO-derived graphs (built from
+        // RelSet.getChildSets relationships) are NOT guaranteed acyclic, so
+        // shortest-path BFS is the safe choice for layout purposes.
         Map<String, Integer> inDegree = new HashMap<>();
         for (String key : graph.getNodes().keySet()) inDegree.put(key, 0);
         for (List<DependencyEdge> edges : graph.getOutEdges().values()) {
@@ -60,14 +67,20 @@ public class GraphVisualizer {
         for (Map.Entry<String, Integer> e : inDegree.entrySet()) {
             if (e.getValue() == 0) { queue.add(e.getKey()); bfsLayer.put(e.getKey(), 0); }
         }
+        // If every node has in-degree ≥ 1 (e.g. a pure cycle), seed with any
+        // node so BFS still runs.
+        if (queue.isEmpty() && !graph.getNodes().isEmpty()) {
+            String seed = graph.getNodes().keySet().iterator().next();
+            queue.add(seed);
+            bfsLayer.put(seed, 0);
+        }
         while (!queue.isEmpty()) {
             String cur = queue.poll();
             int layer = bfsLayer.get(cur);
             for (DependencyEdge edge : graph.getOutEdgesOf(cur)) {
                 String to = edge.getToNodeKey();
-                int next = layer + 1;
-                if (!bfsLayer.containsKey(to) || bfsLayer.get(to) < next) {
-                    bfsLayer.put(to, next);
+                if (!bfsLayer.containsKey(to)) {
+                    bfsLayer.put(to, layer + 1);
                     queue.add(to);
                 }
             }

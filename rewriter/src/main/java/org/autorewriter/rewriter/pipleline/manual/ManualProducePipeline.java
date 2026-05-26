@@ -25,6 +25,7 @@ import org.autorewriter.rewriter.optimize.trace.OptimizationTrace;
 import org.autorewriter.rewriter.pipleline.ProduceContext;
 import org.autorewriter.rewriter.pipleline.ProducePipeline;
 import org.autorewriter.rewriter.pipleline.ProduceStage;
+import org.autorewriter.rewriter.pipleline.costbase.CostBaseProducePipeline;
 import org.autorewriter.rewriter.pipleline.result.ProduceResult;
 import org.autorewriter.rewriter.rule.AutoRewriteRule;
 import org.autorewriter.sql.analyze.SqlAnalyzer;
@@ -32,9 +33,25 @@ import org.autorewriter.sql.analyze.SqlAnalyzer;
 @Slf4j
 public class ManualProducePipeline extends ProducePipeline {
 
+    /**
+     * Optional: when non-null, each completed {@link OptimizationTrace} is forwarded
+     * to this consumer (e.g. a GraphModule instance in the {@code graph} module).
+     */
+    private org.autorewriter.rewriter.optimize.trace.TraceConsumer traceConsumer;
+
     @Override
     protected ProduceStage lastStage() {
         return ProduceStage.ONLINE;
+    }
+
+    /**
+     * Inject a {@link org.autorewriter.rewriter.optimize.trace.TraceConsumer} for recording
+     * optimization traces. Supports method chaining.
+     */
+    public ManualProducePipeline withTraceConsumer(
+            org.autorewriter.rewriter.optimize.trace.TraceConsumer consumer) {
+        this.traceConsumer = consumer;
+        return this;
     }
 
     @Override
@@ -105,12 +122,16 @@ public class ManualProducePipeline extends ProducePipeline {
             log.info("original query logical plan:\n {}", relNode.explain());
 
             OptimizationTrace trace = new OptimizationTrace();
+
             long startTime = System.currentTimeMillis();
             RelNode optimizedRelNode = optimizer.optimize(relNode, trace, true);
             long endTime = System.currentTimeMillis();
             long optimizationTimeInMs = endTime - startTime;
 
             optimizeResult.setTrace(trace);
+            if (traceConsumer != null) {
+                traceConsumer.consume(trace);
+            }
             if (optimizedRelNode.deepEquals(relNode)) {
                 log.info("query {} cannot be optimized by any rule, optimize time: {} ms", historicalSqlRecord.getQueryId(), optimizationTimeInMs);
                 optimizeResult.setRewritten(false);
